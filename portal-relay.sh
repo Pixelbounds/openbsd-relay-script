@@ -2,9 +2,9 @@
 relayrunning=$(ps | grep './portal')
 relayport=$(sed -n 4p /home/$USER/.config/portal/config.yml | grep -Eo '[0-7]{0,4}[0-9]{0,4}|65535')
 
-if [ $relayrunning -eq './portal' ]
+if ps | grep -q './portal'
 	then
-		echo "You are currently running a Portal relay: $relayrunning"
+		echo "You are currently running a Portal relay. $relayrunning"
 	else
 		echo "No relay detected in system processes, continuing..."
 fi
@@ -51,10 +51,8 @@ if [ $relayconnection -eq 1 ]
 			else
 				echo "Invalid input or user aborted script, closing."
 			fi
-	else
-		echo "Portal relay is running on port $relayport"
 	fi
-	if [ relayconfig -eq 0 ]
+	if [ $relayconfig -eq 0 ]
 		then
 		echo "User aborted script, closing!"
 	fi
