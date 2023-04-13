@@ -1,63 +1,54 @@
-#! /bin/bash
-relayrunning=$(ps | grep './portal')
-relayport=$(sed -n 4p /home/$USER/.config/portal/config.yml | grep -Eo '[0-7]{0,4}[0-9]{0,4}|65535')
+#!/bin/sh
 
-if ps | grep -q './portal'
-	then
-		echo "You are currently running a Portal relay. $relayrunning"
-	else
-		echo "No relay detected in system processes, continuing..."
-fi
+# Function to check if the relay is running
+is_relay_running() {
+    relayrunning=$(ps auxwww | grep './portal' | grep -v grep)
+    if [ -n "$relayrunning" ]; then
+        echo "You are currently running a Portal relay. $relayrunning"
+        return 0
+    else
+        echo "No relay detected in system processes, continuing..."
+        return 1
+    fi
+}
+
+# Check if the relay is already running
+is_relay_running
+
 echo "Would you like to set up a Portal relay? (1 for yes, 0 for no)"
 read relayconnection
-if [ $relayconnection -eq 1 ]
-	then
-	echo "Current configured port is $relayport"
-	echo "Would you like to change the port of the relay? (1 for yes, 0 for no)"
-	read relayconfig
-	if [ $relayconfig -eq 1 ]
-		then
-		echo "Please select between 1024 - 65535 (Don't select an already open port)"
-		read portselection
-		while [[ -z $portselection ]]
-			do
-			echo "Input empty select a port between 1024 - 65535"
-			read portselection
-			if [[ $portselection -gt 65536 ]]
-				then 
-				echo "Port selection is greater than 65535, select a port between 1024 - 65535"
-				read portselection
-			fi
-		done
-		while [[ $portselection -gt 65536 ]]
-			do
-			echo "Input is greater than 65535, please select a port between 1024 - 65535"
-			read portselection
-			if [[ -z $portselection ]]
-				then
-				echo "Input empty select a port between 1024 - 65535"
-				read portselection
-			fi
-		done
-		sed -i "3s/.*/port_relay_serve: $portselection/" "/home/$USER/.config/portal/config.yml"
-		echo "Port $portselection configured for Portal"
-		echo "Would you like to run the relay on port $portselection?"
-		read startrelay
-			if [ $startrelay -eq 1 ]
-				then
-				cd /home/$USER/portal/
-				nohup ./portal serve --port $relayport&
-				echo "$relayrunning"
-			else
-				echo "Invalid input or user aborted script, closing."
-			fi
-	fi
-	if [ $relayconfig -eq 0 ]
-		then
-		echo "User aborted script, closing!"
-	fi
-fi
-if [ $relayconnection -eq 0 ]
-then
-	echo "User aborted script, closing..."
+
+if [ "$relayconnection" -eq 1 ]; then
+    echo "Would you like to change the port of the relay,d efault port is 8080? (1 for yes, 0 for no)"
+    read relayconfig
+    if [ "$relayconfig" -eq 1 ]; then
+        echo "Please select between 1024 - 65535 (Don't select an already open port)"
+        read portselection
+        while [[ -z $portselection || "$portselection" -gt 65535 || "$portselection" -lt 1024 ]]; do
+            echo "Invalid input, please select a port between 1024 - 65535"
+            read portselection
+        done
+        sed -i "3s/.*/port_relay_serve: $portselection/" "/home/$USER/.config/portal/config.yml"
+        echo "Port $portselection configured for Portal"
+        echo "Would you like to run the relay on port $portselection?"
+        read startrelay
+        if [ "$startrelay" -eq 1 ]; then
+            cd /home/$USER/portal/
+            nohup ./portal serve --port $portselection &
+            echo "Relay started on port $portselection"
+            exit 0
+        else
+            echo "Invalid input or user aborted script, closing."
+            exit 0
+        fi
+    else
+        echo "User aborted script, closing!"
+        exit 0
+    fi
+elif [ "$relayconnection" -eq 0 ]; then
+    echo "User aborted script, closing..."
+    exit 0
+else
+    echo "Invalid input, closing..."
+    exit 1
 fi
